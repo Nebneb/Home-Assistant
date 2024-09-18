@@ -30,6 +30,8 @@ ota:
 improv_serial:
 
 wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
   # Set up a wifi access point
   ap: 
     ssid: "Esphome-Web-74fcd4"
@@ -153,19 +155,16 @@ switch:
     internal: true
 
 ## Numeric sensors
-sensor:
-  - platform: homeassistant
-    entity_id: sensor.temperature_actuelle
-    id: temp_ext
-  - platform: homeassistant
-    entity_id: sensor.subscriptions_short
-    id: subscriptions
-
-## String sensors
 # sensor:
 #  - platform: homeassistant
-#    entity_id: sensor.temperature_actuelle
-#    id: temp_ext
+#    entity_id: sensor.subscriptions_short
+#    id: subscriptions
+
+## String sensors
+sensor:
+  - platform: homeassistant
+    entity_id: sensor.msg_logger_txt
+    id: msg_logger
 
 ## Colors
 color:
@@ -180,22 +179,10 @@ color:
 
 ## Images
 image:
-  - file: 'images/Youtube_logo.png'
-    id: youtube_image
-    resize: 80x80
+  - file: 'images/Smart-Home-icon.png'
+    id: sh_image
+    resize: 60x60
     type: RGB24
-
-graph:
-  - id: ext_temp_graph 
-    sensor: temp_ext
-    duration: 4h
-    width: 220
-    height: 90
-    x_grid: 1h
-    y_grid: 5
-    min_range: 5
-    max_range: 35
-    color: GREEN
 
 ## Fonts:
 font:
@@ -204,19 +191,19 @@ font:
       family: Lato
       weight: 400
     id: lato
-    size: 20
+    size: 15
   - file:
       type: gfonts
       family: Lato
       weight: 900
     id: latoblack
-    size: 30
+    size: 15
   - file:
       type: gfonts
       family: Lato
       weight: 900
     id: latoblackheading1
-    size: 50
+    size: 30
 
 ## MAIN DISPLAY DEFINITION
 display:
@@ -232,21 +219,12 @@ display:
     update_interval: 1s
     id: my_display
     pages: 
-      - id: showintro
+      - id: showmessage
         lambda: |-
-          it.print(135,10,id(latoblack), WHITE, "Hello!");
-      - id: showtime
-        lambda: |-
-          it.strftime(45,20,id(latoblack), "%d-%m-%Y", id(esptime).now());
-          it.strftime(25,35,id(latoblackheading1), "%H:%M:%S", id(esptime).now());
-      - id: showsubs
-        lambda: |-
-          it.print(0,0,id(latoblack), WHITE, "SUBSCRIBERS");
-          it.image(0, 40, id(youtube_image));
-          if (id(subscriptions).has_state()) {
-            it.printf(95,60,id(latoblack), WHITE, "%.1fK", id(subscriptions).state);
+          it.image(0, 35, id(sh_image));
+          if (id(msg_logger).has_state()) {
+            it.printf(75,60,id(latoblack), WHITE, "%", id(msg_logger).state);
           } else {
-            it.printf(95,65,id(latoblack), WHITE, "LOADING...");
+            it.printf(75,60,id(latoblack), WHITE, "LOADING...");
           }
-
       
