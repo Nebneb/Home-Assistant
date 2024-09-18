@@ -1,0 +1,252 @@
+substitutions:
+  name: "ttgo-display"
+  friendly_name: ESPHome Web 74fcd4
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  min_version: 2024.6.0
+  name_add_mac_suffix: false
+  project:
+    name: esphome.web
+    version: dev
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+# Enable logging
+logger:
+
+# Enable Home Assistant API
+api:
+
+# Allow Over-The-Air updates
+ota:
+- platform: esphome
+
+# Allow provisioning Wi-Fi via serial
+improv_serial:
+
+wifi:
+  # Set up a wifi access point
+  ap: 
+    ssid: "Esphome-Web-74fcd4"
+    password: "ESPHomeLeaf"
+
+# In combination with the `ap` this allows the user
+# to provision wifi credentials to the device via WiFi AP.
+captive_portal:
+
+dashboard_import:
+  package_import_url: github://esphome/example-configs/esphome-web/esp32.yaml@main
+  import_full_config: true
+
+# Sets up Bluetooth LE (Only on ESP32) to allow the user
+# to provision wifi credentials to the device.
+esp32_improv:
+  authorizer: none
+
+# To have a "next url" for improv serial
+web_server:
+
+
+spi:
+  clk_pin: GPIO018
+  mosi_pin: GPIO19
+
+globals:
+  - id: rotate
+    type: boolean
+    initial_value: "true"
+
+# Time sensor
+time:
+  - platform: homeassistant
+    id: esptime
+
+# Binary sensors
+binary_sensor:
+  - platform: gpio    ## Short press button 0 (BOTTOM)
+    pin: 
+      number: GPIO0
+      inverted: true
+      allow_other_uses: true
+      mode: 
+        input: true
+        pullup: true
+    name: "Short Press Button 0"
+    id: short_press_button_0
+    on_click: 
+      min_length: 1ms
+      max_length: 1000ms
+      then:
+        - display.page.show_previous: my_display
+        - component.update: my_display
+  - platform: gpio    ## Long press button 0 (BOTTOM)
+    pin: 
+      number: GPIO0
+      inverted: true
+      allow_other_uses: true
+    id: button_2
+    on_click: 
+      min_length: 1001ms
+      max_length: 5000ms
+      then:
+        - switch.toggle: backlight
+  - platform: gpio    ## Short press button 1 (TOP)
+    pin: 
+      number: GPIO35
+      inverted: true
+      allow_other_uses: true
+    name: "Short Press Button 1"
+    id: short_press_button_1
+    on_click: 
+      min_length: 1ms
+      max_length: 1000ms
+      then:
+        - display.page.show_next: my_display
+        - component.update: my_display
+  - platform: gpio    ## Long press button 1 (TOP)
+    pin: 
+      number: GPIO35
+      inverted: true
+      allow_other_uses: true
+    id: long_press_button_1
+    on_click: 
+      min_length: 1001ms
+      max_length: 5000ms
+      then:
+        - if:
+            condition:
+              lambda: |-
+                return id(rotate);
+            then:
+              globals.set: 
+                id: rotate
+                value: "false"
+            else:
+              globals.set: 
+                id: rotate
+                value: "true"
+
+# Allow dimmable control of the backlight (pin GPIO4)
+output:
+  - platform: ledc
+    pin: 
+      number: GPIO4
+      allow_other_uses: true
+    id: gpio4
+
+light:
+  - platform: monochromatic
+    output: gpio4
+    name: "Backlight"
+
+switch:
+  - platform: gpio
+    pin: 
+      number: GPIO4
+      allow_other_uses: true
+    id: backlight
+    internal: true
+
+## Numeric sensors
+sensor:
+  - platform: homeassistant
+    entity_id: sensor.temperature_actuelle
+    id: temp_ext
+  - platform: homeassistant
+    entity_id: sensor.subscriptions_short
+    id: subscriptions
+
+## String sensors
+# sensor:
+#  - platform: homeassistant
+#    entity_id: sensor.temperature_actuelle
+#    id: temp_ext
+
+## Colors
+color:
+  - id: WHITE
+    red: 100%
+    green: 100%
+    blue: 100%
+  - id: GREEN
+    red: 0%
+    green: 100%
+    blue: 0%
+
+## Images
+image:
+  - file: 'images/Youtube_logo.png'
+    id: youtube_image
+    resize: 80x80
+    type: RGB24
+
+graph:
+  - id: ext_temp_graph 
+    sensor: temp_ext
+    duration: 4h
+    width: 220
+    height: 90
+    x_grid: 1h
+    y_grid: 5
+    min_range: 5
+    max_range: 35
+    color: GREEN
+
+## Fonts:
+font:
+  - file:
+      type: gfonts
+      family: Lato
+      weight: 400
+    id: lato
+    size: 20
+  - file:
+      type: gfonts
+      family: Lato
+      weight: 900
+    id: latoblack
+    size: 30
+  - file:
+      type: gfonts
+      family: Lato
+      weight: 900
+    id: latoblackheading1
+    size: 50
+
+## MAIN DISPLAY DEFINITION
+display:
+  - platform: st7789v
+    model: TTGO_TDISPLAY_135X240
+    backlight_pin: 
+      number: GPIO4
+      allow_other_uses: true
+    cs_pin: GPIO5
+    dc_pin: GPIO16
+    reset_pin: GPIO23
+    rotation: 90°
+    update_interval: 1s
+    id: my_display
+    pages: 
+      - id: showintro
+        lambda: |-
+          it.print(135,10,id(latoblack), WHITE, "Hello!");
+      - id: showtime
+        lambda: |-
+          it.strftime(45,20,id(latoblack), "%d-%m-%Y", id(esptime).now());
+          it.strftime(25,35,id(latoblackheading1), "%H:%M:%S", id(esptime).now());
+      - id: showsubs
+        lambda: |-
+          it.print(0,0,id(latoblack), WHITE, "SUBSCRIBERS");
+          it.image(0, 40, id(youtube_image));
+          if (id(subscriptions).has_state()) {
+            it.printf(95,60,id(latoblack), WHITE, "%.1fK", id(subscriptions).state);
+          } else {
+            it.printf(95,65,id(latoblack), WHITE, "LOADING...");
+          }
+
+      
