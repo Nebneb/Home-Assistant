@@ -16,11 +16,9 @@ esp32:
   framework:
     type: arduino
 
-# Enable logging
-logger:
 
-# Enable Home Assistant API
-api:
+# Enable logging
+logger: {}
 
 # Allow Over-The-Air updates
 ota:
@@ -41,32 +39,28 @@ wifi:
 # to provision wifi credentials to the device via WiFi AP.
 captive_portal:
 
-dashboard_import:
-  package_import_url: github://esphome/example-configs/esphome-web/esp32.yaml@main
-  import_full_config: true
-
-# Sets up Bluetooth LE (Only on ESP32) to allow the user
-# to provision wifi credentials to the device.
-esp32_improv:
-  authorizer: none
-
-# To have a "next url" for improv serial
-web_server:
-
-
 spi:
   clk_pin: GPIO018
   mosi_pin: GPIO19
 
-globals:
-  - id: rotate
-    type: boolean
-    initial_value: "true"
+api: {}
 
-# Time sensor
-time:
+## Sensors
+text_sensor:
   - platform: homeassistant
-    id: esptime
+    entity_id: input_text.logger
+    id: msg_logger
+  - platform: homeassistant
+    entity_id: input_text.warning_logger
+    id: warning_logger
+  - platform: homeassistant
+    entity_id: light.light_group_salon
+    id: light_group_salon
+    internal: true
+  - platform: homeassistant
+    entity_id: light.ampoule_cuisine
+    id: light_cuisine
+    internal: true
 
 # Binary sensors
 binary_sensor:
@@ -74,7 +68,7 @@ binary_sensor:
     pin: 
       number: GPIO0
       inverted: true
-      allow_other_uses: true
+      allow_other_uses: True
       mode: 
         input: true
         pullup: true
@@ -84,31 +78,26 @@ binary_sensor:
       min_length: 1ms
       max_length: 1000ms
       then:
-        - display.page.show_previous: my_display
+        - homeassistant.service:
+            service: light.toggle
+            data:
+              entity_id: light.light_group_salon
         - component.update: my_display
-  - platform: gpio    ## Long press button 0 (BOTTOM)
-    pin: 
-      number: GPIO0
-      inverted: true
-      allow_other_uses: true
-    id: button_2
-    on_click: 
-      min_length: 1001ms
-      max_length: 5000ms
-      then:
-        - switch.toggle: backlight
   - platform: gpio    ## Short press button 1 (TOP)
     pin: 
       number: GPIO35
       inverted: true
-      allow_other_uses: true
+      allow_other_uses: True
     name: "Short Press Button 1"
     id: short_press_button_1
     on_click: 
       min_length: 1ms
       max_length: 1000ms
       then:
-        - display.page.show_next: my_display
+        - homeassistant.service:
+            service: light.toggle
+            data:
+              entity_id: light.ampoule_cuisine
         - component.update: my_display
   - platform: gpio    ## Long press button 1 (TOP)
     pin: 
@@ -120,51 +109,112 @@ binary_sensor:
       min_length: 1001ms
       max_length: 5000ms
       then:
-        - if:
-            condition:
-              lambda: |-
-                return id(rotate);
-            then:
-              globals.set: 
-                id: rotate
-                value: "false"
-            else:
-              globals.set: 
-                id: rotate
-                value: "true"
-
-# Allow dimmable control of the backlight (pin GPIO4)
-output:
-  - platform: ledc
+        - display.page.show_next: my_display
+        - component.update: my_display
+  - platform: gpio    ## Long press button 2 (BOTTOM)
     pin: 
-      number: GPIO4
+      number: GPIO0
+      inverted: true
       allow_other_uses: true
-    id: gpio4
-
-light:
-  - platform: monochromatic
-    output: gpio4
-    name: "Backlight"
-
-switch:
-  - platform: gpio
-    pin: 
+    id: long_press_button_2
+    on_click: 
+      min_length: 1001ms
+      max_length: 5000ms
+      then:
+        - display.page.show_next: my_display
+        - component.update: my_display
+      
+display:
+  - platform: st7789v
+    model: TTGO_TDISPLAY_135X240
+    backlight_pin: 
       number: GPIO4
-      allow_other_uses: true
-    id: backlight
-    internal: true
-
-## Numeric sensors
-# sensor:
-#  - platform: homeassistant
-#    entity_id: sensor.subscriptions_short
-#    id: subscriptions
-
-## String sensors
-sensor:
-  - platform: homeassistant
-    entity_id: sensor.msg_logger_txt
-    id: msg_logger
+    cs_pin: GPIO5
+    dc_pin: GPIO16
+    reset_pin: GPIO23
+    rotation: 90°
+    update_interval: 1s
+    id: my_display
+    pages: 
+      - id: light_status
+        lambda: |-
+          it.printf(10, 30, id(latoblackheading1), WHITE, "Lights");
+          
+          // Salon lights status
+          it.printf(20, 70, id(latoblack), WHITE, "Salon:");
+          if (id(light_group_salon).has_state()) {
+            if (id(light_group_salon).state == "on") {
+              it.filled_rectangle(100, 70, 20, 20, GREEN);
+              it.printf(125, 70, id(latoblack), WHITE, "ON");
+            } else {
+              it.filled_rectangle(100, 70, 20, 20, RED);
+              it.printf(125, 70, id(latoblack), WHITE, "OFF");
+            }
+          } else {
+            it.filled_rectangle(100, 100, 20, 20, YELLOW);
+            it.printf(125, 100, id(latoblack), WHITE, "Unknown");
+          }
+          
+          // Cuisine light status
+          it.printf(20, 100, id(latoblack), WHITE, "Cuisine:");
+          
+          if (id(light_cuisine).has_state()) {
+            if (id(light_cuisine).state == "on") {
+              it.filled_rectangle(100, 100, 20, 20, GREEN);
+              it.printf(125, 100, id(latoblack), WHITE, "ON");
+            } else {
+              it.filled_rectangle(100, 100, 20, 20, RED);
+              it.printf(125, 100, id(latoblack), WHITE, "OFF");
+            }
+          } else {
+            it.filled_rectangle(100, 100, 20, 20, YELLOW);
+            it.printf(125, 100, id(latoblack), WHITE, "Unknown");
+          }
+          it.printf(10, 140, id(lato), YELLOW, "Button 0: Toggle Salon");
+          it.printf(10, 160, id(lato), YELLOW, "Button 1: Toggle Cuisine");
+      - id: notifications
+        lambda: |-
+          it.printf(10, 10, id(latoblackheading1), WHITE, "Notifications");
+          if (id(msg_logger).has_state()) {
+            // Handle potentially long notification text with word wrapping
+            std::string message = id(msg_logger).state;
+            int y_pos = 70;
+            int max_width = 220;  // Max width for text
+            int line_height = 20;  // Height between lines
+            
+            size_t start = 0;
+            size_t end = 0;
+            
+            while (start < message.length() && y_pos < 200) {
+              // Calculate how many characters fit in a line
+              size_t chars_that_fit = 30;  // Approximate characters per line
+              
+              end = start + chars_that_fit;
+              if (end >= message.length()) {
+                end = message.length();
+              } else {
+                // Try to break at space
+                size_t space_pos = message.rfind(' ', end);
+                if (space_pos > start && space_pos < end) {
+                  end = space_pos + 1;
+                }
+              }
+              
+              it.printf(10, y_pos, id(latoblack), WHITE, "%s", message.substr(start, end - start).c_str());
+              y_pos += line_height;
+              start = end;
+            }
+          } else {
+            it.printf(10, 70, id(latoblack), WHITE, "No notifications");
+          }
+      - id: showmessage
+        lambda: |-
+          // it.image(0, 35, id(sh_image));
+          if (id(msg_logger).has_state()) {
+            it.printf(75,60,id(latoblack), WHITE, "%s", id(msg_logger).state);
+          } else {
+            it.printf(75,60,id(latoblack), WHITE, "LOADING...");
+          }
 
 ## Colors
 color:
@@ -176,13 +226,21 @@ color:
     red: 0%
     green: 100%
     blue: 0%
+  - id: RED
+    red: 100%
+    green: 0%
+    blue: 0%
+  - id: YELLOW
+    red: 100%
+    green: 100%
+    blue: 0%
 
 ## Images
 image:
   - file: 'images/Smart-Home-icon.png'
     id: sh_image
     resize: 60x60
-    type: RGB24
+    type: RGB
 
 ## Fonts:
 font:
@@ -204,27 +262,3 @@ font:
       weight: 900
     id: latoblackheading1
     size: 30
-
-## MAIN DISPLAY DEFINITION
-display:
-  - platform: st7789v
-    model: TTGO_TDISPLAY_135X240
-    backlight_pin: 
-      number: GPIO4
-      allow_other_uses: true
-    cs_pin: GPIO5
-    dc_pin: GPIO16
-    reset_pin: GPIO23
-    rotation: 90°
-    update_interval: 1s
-    id: my_display
-    pages: 
-      - id: showmessage
-        lambda: |-
-          it.image(0, 35, id(sh_image));
-          if (id(msg_logger).has_state()) {
-            it.printf(75,60,id(latoblack), WHITE, "%", id(msg_logger).state);
-          } else {
-            it.printf(75,60,id(latoblack), WHITE, "LOADING...");
-          }
-      
