@@ -48,11 +48,8 @@ api: {}
 ## Sensors
 text_sensor:
   - platform: homeassistant
-    entity_id: input_text.logger
-    id: msg_logger
-  - platform: homeassistant
-    entity_id: input_text.warning_logger
-    id: warning_logger
+    entity_id: input_text.ttgo_logger
+    id: ttgo_logger
   - platform: homeassistant
     entity_id: light.light_group_salon
     id: light_group_salon
@@ -72,44 +69,45 @@ binary_sensor:
       mode: 
         input: true
         pullup: true
-    name: "Short Press Button 0"
-    id: short_press_button_0
+    name: "Short Press Button bottom (0)"
+    id: short_press_button_bottom
     on_click: 
       min_length: 1ms
       max_length: 1000ms
       then:
-        - homeassistant.service:
-            service: light.toggle
-            data:
-              entity_id: light.light_group_salon
+        ##- homeassistant.service:
+        ##    service: light.toggle
+        ##    data:
+        ##      entity_id: light.light_group_salon
         - component.update: my_display
   - platform: gpio    ## Short press button 1 (TOP)
     pin: 
       number: GPIO35
       inverted: true
       allow_other_uses: True
-    name: "Short Press Button 1"
-    id: short_press_button_1
+    name: "Short Press Button top (1)"
+    id: short_press_button_top
     on_click: 
       min_length: 1ms
       max_length: 1000ms
       then:
-        - homeassistant.service:
-            service: light.toggle
-            data:
-              entity_id: light.ampoule_cuisine
+        ##- homeassistant.service:
+        ##    service: light.toggle
+        ##    data:
+        ##      entity_id: light.ampoule_cuisine
         - component.update: my_display
   - platform: gpio    ## Long press button 1 (TOP)
     pin: 
       number: GPIO35
       inverted: true
       allow_other_uses: true
-    id: long_press_button_1
+    id: long_press_button_top
+    name: "Long Press Button top (1)"
     on_click: 
-      min_length: 1001ms
+      min_length: 1500ms
       max_length: 5000ms
       then:
-        - display.page.show_next: my_display
+        #- display.page.show_next: my_display
         - component.update: my_display
   - platform: gpio    ## Long press button 2 (BOTTOM)
     pin: 
@@ -117,11 +115,12 @@ binary_sensor:
       inverted: true
       allow_other_uses: true
     id: long_press_button_2
+    name: "Long Press Button bottom (2)"
     on_click: 
-      min_length: 1001ms
+      min_length: 1500ms
       max_length: 5000ms
       then:
-        - display.page.show_next: my_display
+        #- display.page.show_next: my_display
         - component.update: my_display
       
 display:
@@ -138,82 +137,68 @@ display:
     pages: 
       - id: light_status
         lambda: |-
-          it.printf(10, 30, id(latoblackheading1), WHITE, "Lights");
+          it.printf(10, 10, id(latoblackheading1), WHITE, "Lights");
           
+          int line_1 = 35;
+          int line_2 = line_1+25;
+          int line_3 = line_2+35;
+
           // Salon lights status
-          it.printf(20, 70, id(latoblack), WHITE, "Salon:");
+          it.printf(20, line_1, id(latoblack), WHITE, "Salon");
           if (id(light_group_salon).has_state()) {
             if (id(light_group_salon).state == "on") {
-              it.filled_rectangle(100, 70, 20, 20, GREEN);
-              it.printf(125, 70, id(latoblack), WHITE, "ON");
+              it.filled_circle(110, line_1 + 10, 10, GREEN);
             } else {
-              it.filled_rectangle(100, 70, 20, 20, RED);
-              it.printf(125, 70, id(latoblack), WHITE, "OFF");
+              it.circle(110, line_1 + 10, 10, GREY);
             }
           } else {
-            it.filled_rectangle(100, 100, 20, 20, YELLOW);
-            it.printf(125, 100, id(latoblack), WHITE, "Unknown");
+            it.filled_rectangle(100, line_1, 20, 20, YELLOW);
+            it.printf(125, line_1, id(latoblack), WHITE, "Unknown");
           }
           
           // Cuisine light status
-          it.printf(20, 100, id(latoblack), WHITE, "Cuisine:");
+          it.printf(20, line_2, id(latoblack), WHITE, "Cuisine");
           
           if (id(light_cuisine).has_state()) {
             if (id(light_cuisine).state == "on") {
-              it.filled_rectangle(100, 100, 20, 20, GREEN);
-              it.printf(125, 100, id(latoblack), WHITE, "ON");
+              it.filled_circle(110, line_2 + 10, 10, GREEN);
             } else {
-              it.filled_rectangle(100, 100, 20, 20, RED);
-              it.printf(125, 100, id(latoblack), WHITE, "OFF");
+              it.circle(110, line_2 + 10, 10, GREY);
             }
           } else {
-            it.filled_rectangle(100, 100, 20, 20, YELLOW);
-            it.printf(125, 100, id(latoblack), WHITE, "Unknown");
+            it.filled_rectangle(100, line_2, 20, 20, YELLOW);
+            it.printf(125, line_2, id(latoblack), WHITE, "Unknown");
           }
-          it.printf(10, 140, id(lato), YELLOW, "Button 0: Toggle Salon");
-          it.printf(10, 160, id(lato), YELLOW, "Button 1: Toggle Cuisine");
-      - id: notifications
-        lambda: |-
-          it.printf(10, 10, id(latoblackheading1), WHITE, "Notifications");
-          if (id(msg_logger).has_state()) {
-            // Handle potentially long notification text with word wrapping
-            std::string message = id(msg_logger).state;
-            int y_pos = 70;
-            int max_width = 220;  // Max width for text
-            int line_height = 20;  // Height between lines
-            
+
+          // Logger messages
+          if (id(ttgo_logger).has_state() && id(ttgo_logger).state != "none") {
+            std::string message = id(ttgo_logger).state;
+            int y_pos = line_3;
+            int line_height = 20;
             size_t start = 0;
             size_t end = 0;
-            
+
             while (start < message.length() && y_pos < 200) {
-              // Calculate how many characters fit in a line
-              size_t chars_that_fit = 30;  // Approximate characters per line
-              
+              size_t chars_that_fit = 30;
               end = start + chars_that_fit;
               if (end >= message.length()) {
                 end = message.length();
               } else {
-                // Try to break at space
                 size_t space_pos = message.rfind(' ', end);
                 if (space_pos > start && space_pos < end) {
                   end = space_pos + 1;
                 }
               }
-              
-              it.printf(10, y_pos, id(latoblack), WHITE, "%s", message.substr(start, end - start).c_str());
+
+              // Triangle
+              it.filled_triangle(5, y_pos + 5, 5, y_pos + 15, 12, y_pos + 10, ORANGE);
+
+              it.printf(20, y_pos, id(latoblack), WHITE, "%s", message.substr(start, end - start).c_str());
               y_pos += line_height;
               start = end;
             }
           } else {
-            it.printf(10, 70, id(latoblack), WHITE, "No notifications");
-          }
-      - id: showmessage
-        lambda: |-
-          // it.image(0, 35, id(sh_image));
-          if (id(msg_logger).has_state()) {
-            it.printf(75,60,id(latoblack), WHITE, "%s", id(msg_logger).state);
-          } else {
-            it.printf(75,60,id(latoblack), WHITE, "LOADING...");
+            it.printf(10, line_3, id(latoblack), WHITE, "Aucune notification");
           }
 
 ## Colors
@@ -234,6 +219,14 @@ color:
     red: 100%
     green: 100%
     blue: 0%
+  - id: ORANGE
+    red: 100%
+    green: 60%
+    blue: 0%
+  - id: GREY
+    red: 30%
+    green: 30%
+    blue: 30%
 
 ## Images
 image:
@@ -261,4 +254,4 @@ font:
       family: Lato
       weight: 900
     id: latoblackheading1
-    size: 30
+    size: 20
