@@ -65,7 +65,6 @@ binary_sensor:
     pin: 
       number: GPIO0
       inverted: true
-      allow_other_uses: True
       mode: 
         input: true
         pullup: true
@@ -84,7 +83,6 @@ binary_sensor:
     pin: 
       number: GPIO35
       inverted: true
-      allow_other_uses: True
     name: "Short Press Button top (1)"
     id: short_press_button_top
     on_click: 
@@ -95,32 +93,6 @@ binary_sensor:
         ##    service: light.toggle
         ##    data:
         ##      entity_id: light.ampoule_cuisine
-        - component.update: my_display
-  - platform: gpio    ## Long press button 1 (TOP)
-    pin: 
-      number: GPIO35
-      inverted: true
-      allow_other_uses: true
-    id: long_press_button_top
-    name: "Long Press Button top (1)"
-    on_click: 
-      min_length: 1500ms
-      max_length: 5000ms
-      then:
-        #- display.page.show_next: my_display
-        - component.update: my_display
-  - platform: gpio    ## Long press button 2 (BOTTOM)
-    pin: 
-      number: GPIO0
-      inverted: true
-      allow_other_uses: true
-    id: long_press_button_2
-    name: "Long Press Button bottom (2)"
-    on_click: 
-      min_length: 1500ms
-      max_length: 5000ms
-      then:
-        #- display.page.show_next: my_display
         - component.update: my_display
       
 display:
