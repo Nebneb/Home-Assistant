@@ -100,7 +100,7 @@ display:
     dc_pin: GPIO16
     reset_pin: GPIO23
     rotation: 90°
-    update_interval: 1s
+    update_interval: 800ms
     id: my_display
     pages: 
       - id: light_status
@@ -112,29 +112,29 @@ display:
           int line_3 = line_2+35;
 
           // Salon lights status
-          it.printf(20, line_1, id(latoblack), WHITE, "Salon");
+          it.printf(20, line_1, id(latoblack), WHITE, "Living room");
           if (id(light_group_salon).has_state()) {
             if (id(light_group_salon).state == "on") {
-              it.filled_circle(110, line_1 + 10, 10, GREEN);
+              it.filled_circle(120, line_1 + 10, 10, GREEN);
             } else {
-              it.circle(110, line_1 + 10, 10, GREY);
+              it.circle(120, line_1 + 10, 10, GREY);
             }
           } else {
-            it.filled_rectangle(100, line_1, 20, 20, YELLOW);
+            it.filled_rectangle(110, line_1, 20, 20, YELLOW);
             it.printf(125, line_1, id(latoblack), WHITE, "Unknown");
           }
           
           // Cuisine light status
-          it.printf(20, line_2, id(latoblack), WHITE, "Cuisine");
+          it.printf(20, line_2, id(latoblack), WHITE, "Kitchen");
           
           if (id(light_cuisine).has_state()) {
             if (id(light_cuisine).state == "on") {
-              it.filled_circle(110, line_2 + 10, 10, GREEN);
+              it.filled_circle(120, line_2 + 10, 10, GREEN);
             } else {
-              it.circle(110, line_2 + 10, 10, GREY);
+              it.circle(120, line_2 + 10, 10, GREY);
             }
           } else {
-            it.filled_rectangle(100, line_2, 20, 20, YELLOW);
+            it.filled_rectangle(110, line_2, 20, 20, YELLOW);
             it.printf(125, line_2, id(latoblack), WHITE, "Unknown");
           }
 
@@ -166,7 +166,7 @@ display:
               start = end;
             }
           } else {
-            it.printf(10, line_3, id(latoblack), WHITE, "Aucune notification");
+            it.printf(10, line_3, id(latoblack), WHITE, "No notification");
           }
 
 ## Colors
