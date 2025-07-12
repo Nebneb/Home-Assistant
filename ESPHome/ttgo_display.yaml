@@ -33,12 +33,14 @@ wifi:
   # Set up a wifi access point
   ap: 
     ssid: "Esphome-Web-74fcd4"
-    password: "ESPHomeLeaf"
+    password: "ESPHomePWD"
 
 # In combination with the `ap` this allows the user
 # to provision wifi credentials to the device via WiFi AP.
 captive_portal:
 
+# defines the Serial Peripheral Interface (SPI) pins for
+# communicating with the display on the TTGO T-Display.
 spi:
   clk_pin: GPIO018
   mosi_pin: GPIO19
@@ -48,14 +50,14 @@ api: {}
 ## Sensors
 text_sensor:
   - platform: homeassistant
-    entity_id: input_text.ttgo_logger
+    entity_id: input_text.ttgo_logger ## Dedicated logger input_text in HA
     id: ttgo_logger
   - platform: homeassistant
-    entity_id: light.light_group_salon
+    entity_id: light.light_group_salon ## Light group for living room
     id: light_group_salon
     internal: true
   - platform: homeassistant
-    entity_id: light.ampoule_cuisine
+    entity_id: light.ampoule_cuisine ## Light for the kitchen
     id: light_cuisine
     internal: true
 
@@ -74,10 +76,7 @@ binary_sensor:
       min_length: 1ms
       max_length: 1000ms
       then:
-        ##- homeassistant.service:
-        ##    service: light.toggle
-        ##    data:
-        ##      entity_id: light.light_group_salon
+        ## Listened by Home Assistant
         - component.update: my_display
   - platform: gpio    ## Short press button 1 (TOP)
     pin: 
@@ -89,10 +88,7 @@ binary_sensor:
       min_length: 1ms
       max_length: 1000ms
       then:
-        ##- homeassistant.service:
-        ##    service: light.toggle
-        ##    data:
-        ##      entity_id: light.ampoule_cuisine
+        ## Listened by Home Assistant
         - component.update: my_display
       
 display:
